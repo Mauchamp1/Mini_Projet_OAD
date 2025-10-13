@@ -5,12 +5,12 @@ library(readr)
 library(tidyverse)
 
 ##Import data Matreex et tri
-data_matreex_ini = readRDS("C:/Users/steph/Downloads/BA_sim.Rds")
+data_matreex_ini = readRDS("C:/FIF/projet OAD/mini_projet_AgroParisTech/mini_projet_AgroParisTech/DataMatreex/BA_sim.Rds")
 data_matree_ssp585 <- data_matreex_ini %>%
   filter(ssp == "ssp585")
 
 ##Import data PhorEau et tri 
-data_phoreau_ini <- read_tsv("C:/Users/steph/Downloads/Site_Species_BA.tsv")
+data_phoreau_ini <- read_tsv("C:/FIF/projet OAD/mini_projet_AgroParisTech/mini_projet_AgroParisTech/DataPhoreau/Site_Species_BA.tsv")
 data_phoreau_ini$speciesName <- as.factor(data_phoreau_ini$speciesName)
 data_phoreau_ini$Scenario <- as.factor(data_phoreau_ini$Scenario)
 phoreau_selec = data_phoreau_ini %>% 
@@ -68,4 +68,18 @@ PhorEau_pplmt_monospé <- df_filteredPhorEau %>%
   filter(IDP %in% plots_dominants_phoreau)
 PhorEau_pplmt_plurispé <- df_filteredPhorEau %>%
   filter(IDP %in% plots_non_dominants_phoreau)
+
+#récupération de l'essence principale dans le mélange pour chaque placette et pour tini tfin
+PhorEau_monotri_essence <- PhorEau_pplmt_monospé %>% 
+  group_by(IDP, Year) %>% 
+  slice_max(basalAreaSum, n=1, )
+  
+
+
+
+
+
+
+
+
 
