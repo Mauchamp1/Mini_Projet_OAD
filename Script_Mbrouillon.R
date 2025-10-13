@@ -77,6 +77,7 @@ rm(ref_vector, div_matrix,mat_to_divide)
 #Calculerlesindicateur gfin/gini  
 t1 = 1 #temps de base
 tfin = 100 #temps à comparer
+tfin_9 = tfin- 9
 
 matree_t1 = matree_propg %>% 
   filter(time == t1)
@@ -84,19 +85,44 @@ matree_tfin = matree_propg %>%
   filter(time == tfin)
 
 #indic tfin/tini
-indic_div = matree_tfin[,7:32]/matree_t1[,7:32]
-indic_div = cbind(matree_propg[,1:6], indic_div)
+mat_indic_div = matree_tfin[,7:32]/matree_t1[,7:32]
+mat_indic_div = cbind(matree_propg[,1:6], mat_indic_div)
 
 #indic soustra
-indic_soustra = matree_tfin[,7:32]-matree_t1[,7:32]
-indic_soustra = cbind(matree_propg[,1:6],indic_soustra)
+mat_indic_soustra = matree_tfin[,7:32]-matree_t1[,7:32]
+mat_indic_soustra = cbind(matree_propg[,1:6],mat_indic_soustra)
 
+
+
+# Indic tfin/tfin-9
+mat__tfin_9 = matree_propg %>%
+  filter(time == tfin_9)
+mat_indic_div_9last = matree_tfin[,7:32]/mat__tfin_9[,7:32]
+mat_indic_div_9last = cbind(matree_propg[,1:6], mat_indic_div_9last)
+
+#indic prés/abs
+#Réorganise le tableau avec les espèces en long et les années sélec en large (bien penser à enlever gtot qui varie selon l'année)
+mat_pres_abs = matree_propg[,1:32] %>% 
+  filter (time == tfin| time == t1) %>% 
+  pivot_longer(cols = 7:32,
+               names_to = "species",
+               values_to = "BA" ) %>% 
+  pivot_wider(
+    names_from = time,
+    values_from = BA)
+#Attribue une évolution selon les conditions citées
+mat_pres_abs = mat_pres_abs %>% 
+  mutate( evolution = case_when(
+    `1` > 0.1 & `100`< 0.01~"disp", #plus de 10% du gtot en 2001 moins de 1% en 2100
+    `100`>0.1   & `100`/`1`> 1 ~ "exp", #pluis de 10% du gtot 2100 et une augmentation depuis la situation initiale
+    `1`>0.1   & `100`/`1`< 1 & `100`> 0.01~ "declin",#plus de 10% en 2001, puis un déclin mais un g qui reste supérieur à 1% du gtot
+    T ~ NA
+  ))
 # indic_évol (écart entre les moyennes des dernières années ?)
 # Vérif les indicateurs à faire (cohérence des rés)
 
 
-
-
+##########################################################################################################
 
 #Import données phoreau
 data_phoreau_ini <- read_tsv("Data Phoreau/Site_Species_BA.tsv")
@@ -150,19 +176,47 @@ summary(phoreau_propg)
 # #Calculerlesindicateur gfin/gini  
 t1 = 2001 #temps de base
 tfin = 2100 #temps à comparer
-# 
+tfin_9 = tfin-9
+
 phoreau_t1 = phoreau_propg %>%
-  filter(time == t1)
+  filter(Year == t1)
 phoreau_tfin = phoreau_propg %>%
-  filter(time == tfin)
-# 
+  filter(Year == tfin)
+
+
 # #indic tfin/tini
-indic_div = phoreau_tfin[,7:32]/phoreau_t1[,7:32]
-indic_div = cbind(phoreau_propg[,1:3], indic_div)
-# 
+ph_indic_div = phoreau_tfin[,4:105]/phoreau_t1[,4:105]
+ph_indic_div = cbind(phoreau_propg[,1:3], ph_indic_div)
+
 # #indic soustra
-indic_soustra = phoreau_tfin[,7:32]-phoreau_t1[,7:32]
-indic_soustra = cbind(phoreau_propg[,1:3],indic_soustra)
+ph_indic_soustra = phoreau_tfin[,4:105]-phoreau_t1[,4:105]
+ph_indic_soustra = cbind(phoreau_propg[,1:3],ph_indic_soustra)
+
+# Indic tfin/tfin-9
+phoreau_tfin_9 = phoreau_propg %>%
+  filter(Year == tfin_9)
+ph_indic_div_9last = phoreau_tfin[,4:105]/phoreau_tfin_9[,4:105]# On divise pr ttes les sp entre années defin et celles neufs ans plus tôt
+ph_indic_div_9last = cbind(phoreau_propg[,1:3], ph_indic_div_9last)
+
+#indic prés/abs
+#Réorganise le tableau avec les espèces en long et les années sélec en large (bien penser à enlever gtot qui varie selon l'année)
+ph_indic_pres_abs = phoreau_propg[,1:105] %>% 
+  filter (Year == tfin| Year == t1) %>% 
+  pivot_longer(cols = 4:105,
+               names_to = "speciesName",
+               values_to = "basalAreaSum" ) %>% 
+  pivot_wider(
+    names_from = Year,
+    values_from = basalAreaSum)
+#Attribue une évolution selon les conditions citées
+ph_indic_pres_abs = ph_indic_pres_abs %>% 
+  mutate( evolution = case_when(
+    `2001` > 0.1 & `2100`< 0.01~"disp", #plus de 10% du gtot en 2001 moins de 1% en 2100
+    `2100`>0.1   & `2100`/`2001`> 1 ~ "exp", #pluis de 10% du gtot 2100 et une augmentation depuis la situation initiale
+    `2001`>0.1   & `2100`/`2001`< 1 & `2100`> 0.01~ "declin",#plus de 10% en 2001, puis un déclin mais un g qui reste supérieur à 1% du gtot
+    T ~ NA
+  ))
+
 
 # indic_évol (écart entre les moyennes des dernières années ?)
 # Vérif les indicateurs à faire (cohérence des rés)
