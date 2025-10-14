@@ -196,11 +196,11 @@ france_metropole <- france %>%
 
 df_carte_diff <- st_as_sf(df_diff, coords = c("Lon", "Lat"), crs = 4326)
 
-essence_cible <- "AAlb"
+essence_cible <- "QRob"
 
 #graph----
 
-ggplot() +
+carte_val_abs <- ggplot() +
   geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
   geom_sf(
     data = df_carte_diff %>% filter(speciesName == essence_cible, !is.na(diff_valeur_abs)),
@@ -231,8 +231,9 @@ ggplot() +
     axis.ticks = element_blank()
   )
 
+ggsave("carte_val_abs.png", plot = carte_val_abs, width = 8, height = 6, dpi = 300)
 
-ggplot() +
+carte_diminution <- ggplot() +
   geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
   geom_sf(
     data = df_carte_diff %>% filter(speciesName == essence_cible, !is.na(pct_disparition)),
@@ -264,7 +265,9 @@ ggplot() +
     axis.ticks = element_blank()
     )
 
-ggplot() +
+ggsave("carte_diminution.png", plot = carte_diminution, width = 8, height = 6, dpi = 300)
+
+carte_apparition <- ggplot() +
   geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
   geom_sf(
     data = df_carte_diff %>% filter(speciesName == essence_cible, !is.na(pct_apparition)),
@@ -296,6 +299,7 @@ ggplot() +
     axis.ticks = element_blank()
   )
 
+ggsave("carte_apparition.png", plot = carte_apparition, width = 8, height = 6, dpi = 300)
 
 #-------Carte présence/absence---------------------
 
@@ -318,10 +322,10 @@ france_metropole <- france %>%
 
 df_carte_abs_pres <- st_as_sf(df_abs_pres, coords = c("Lon", "Lat"), crs = 4326)
 
-essence_cible <- "AAlb"
+essence_cible <- "QRob"
 
 #graph presence/absence
-ggplot() +
+carte_abs_pres <- ggplot() +
   geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
   geom_sf(
     data = df_carte_abs_pres %>% filter(speciesName == essence_cible),
@@ -351,8 +355,10 @@ ggplot() +
     axis.ticks = element_blank()
   )
 
+ggsave("carte_abs_pres.png", plot = carte_abs_pres, width = 8, height = 6, dpi = 300)
+
 #graph gradient presence
-ggplot() +
+carte_gradient <- ggplot() +
   geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
   geom_sf(
     data = df_carte_abs_pres %>% filter(speciesName == essence_cible, !is.na(risque_pres)),
@@ -383,5 +389,4 @@ ggplot() +
     axis.ticks = element_blank()
   )
 
-
-
+ggsave("carte_gradient.png", plot = carte_gradient, width = 8, height = 6, dpi = 300)
