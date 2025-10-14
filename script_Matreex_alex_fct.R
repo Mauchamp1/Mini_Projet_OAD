@@ -109,13 +109,26 @@ mat_diff <- mat_diff %>%
                       (((basal_tfin /total_basal_tfin) * 100)-((basal_tdebut / total_basal_tdebut) * 100)),
                       NA_real_))
 
+
+mat_classi <- mat_diff %>%
+  mutate(classe_app = cut(pct_apparition,
+                          breaks = c(0, 25, 50, 75, 100),
+                          include.lowest = TRUE,
+                          labels = c("0–25%", "25–50%", "50–75%", "75–100%")))
+
+mat_classi <- mat_classi %>%
+  mutate(classe_disp = cut(pct_disparition,
+                           breaks = c(0, 25, 50, 75, 100),
+                           include.lowest = TRUE,
+                           labels = c("0–25%", "25–50%", "50–75%", "75–100%")))
+
 france <- ne_countries(scale = "medium", returnclass = "sf") %>%
   filter(admin == "France")
 
 france_metropole <- france %>%
   st_crop(xmin = -5.5, xmax = 9.8, ymin = 41, ymax = 51.5)
 
-mat_carte_diff <- st_as_sf(mat_diff, coords = c("Lon", "Lat"), crs = 4326)
+mat_carte_diff <- st_as_sf(mat_classi, coords = c("Lon", "Lat"), crs = 4326)
 
 essence_cible <- "AAlb"
 
@@ -221,7 +234,7 @@ ggplot() +
 #-------Carte présence/absence---------------------
 seuil_pres = 50
 
-mat_abs_pres <- mat_diff %>%
+mat_abs_pres <- mat_classi %>%
   mutate(abs_pres = ifelse(basal_tfin > 1,"presence","absence"))
 
 mat_abs_pres <- mat_abs_pres %>% 

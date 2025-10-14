@@ -110,13 +110,26 @@ pho_diff <- pho_diff %>%
                       (((basal_tfin /total_basal_tfin) * 100)-((basal_tdebut / total_basal_tdebut) * 100)),
                       NA_real_))
 
+
+pho_classi <- pho_diff %>%
+  mutate(classe_app = cut(pct_apparition,
+                          breaks = c(0, 25, 50, 75, 100),
+                          include.lowest = TRUE,
+                          labels = c("0–25%", "25–50%", "50–75%", "75–100%")))
+
+pho_classi <- pho_classi %>%
+  mutate(classe_disp = cut(pct_disparition,
+                           breaks = c(0, 25, 50, 75, 100),
+                           include.lowest = TRUE,
+                           labels = c("0–25%", "25–50%", "50–75%", "75–100%")))
+
 france <- ne_countries(scale = "medium", returnclass = "sf") %>%
   filter(admin == "France")
 
 france_metropole <- france %>%
   st_crop(xmin = -5.5, xmax = 9.8, ymin = 41, ymax = 51.5)
 
-pho_carte_diff <- st_as_sf(pho_diff, coords = c("Lon", "Lat"), crs = 4326)
+pho_carte_diff <- st_as_sf(pho_classi, coords = c("Lon", "Lat"), crs = 4326)
 
 essence_cible <- "AAlb"
 
@@ -222,7 +235,7 @@ ggplot() +
 #-------Carte présence/absence---------------------
 seuil_pres = 50
 
-pho_abs_pres <- pho_diff %>%
+pho_abs_pres <- pho_classi %>%
   mutate(abs_pres = ifelse(basal_tfin > 1,"presence","absence"))
 
 pho_abs_pres <- pho_abs_pres %>% 
@@ -287,7 +300,7 @@ ggplot() +
       "faible" = "red",
       "moyen" = "orange",
       "fort" = "green"),
-    name = "Probabilité de présence :"
+    name = "Probabilité de présence :"# Achanger
   ) +
   labs(
     title = paste("Carte de la probabilité de présence de", essence_cible,"sur la période 2001-2100"),
