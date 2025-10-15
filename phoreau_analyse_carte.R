@@ -33,15 +33,6 @@ df_site <- read_excel("Simulation_Site_Table.xlsx")
 df <- fread("Site_Species_BA.tsv")
 
 
-#---------on s'en fou------------
-head(df)
-table(df$Year)
-summary(df)
-dd <- df %>% group_by(speciesName) %>% summarise(SumBA = sum(basalAreaSum))
-ggplot(dd, aes(x = forcats::fct_reorder(speciesName, SumBA), y =SumBA)) +geom_col()+ coord_flip()
-# cluster_ID	Lat	Lon
-
-
 #------boxplot---------------
 unique(df$speciesName)
 
@@ -56,31 +47,17 @@ df %>%
   ) +
   theme_bw()
 
-#-----ajout moyenne G-------------
-df <- df %>%
-  group_by(speciesName, Year) %>%
-  mutate(mean_basalAreaSum = mean(basalAreaSum, na.rm = TRUE)) %>%
-  ungroup() 
 
 #-------courbe evolution G------
-df %>%
-  filter(speciesName == "QRub") %>%
-  ggplot(aes(x = Year, y = basalAreaSum)) +
-  geom_line(color = "blue", linewidth = 1) +  # courbe
-  labs(
-    title = "Évolution de la surface terrière moyenne par année - QRub",
-    x = "Année",
-    y = "Surface basale moyenne (m²/ha)"
-  ) +
-  theme_minimal()
-
 
 df %>%
-  filter(IDP %in% c("1000001"),speciesName %in% c("QRub", "AAlb","PAbi","FSyl"),Scenario %in% c("BusinessAsUsual_ssp585")) %>%
+  filter(IDP %in% c("1000001"),
+         speciesName %in% c("QRub", "AAlb","PAbi","FSyl"),
+         Scenario %in% c("BusinessAsUsual_ssp585")) %>%
   ggplot(aes(x = Year, y = basalAreaSum, color = speciesName)) +
   geom_line(linewidth = 1) +
   labs(
-    title = "Évolution de la surface terrière moyenne par année",
+    title = "Évolution de la surface terrière par année",
     x = "Année",
     y = "Surface terrière moyenne (m²/ha)",
     color = "Essence"
@@ -101,7 +78,7 @@ df %>%
   ggplot(aes(x = Year, y = basalAreaSum, color = speciesName)) +
   geom_line(size = 1.2) +
   labs(
-    title = "Évolution de la surface terrière par année en libre évolution",
+    title = "Évolution de la surface terrière par année",
     x = "Années",
     y = "Surface terrière (m²/ha)",
     color = "Essence"
@@ -114,20 +91,17 @@ df %>%
     plot.subtitle = element_text(size = 11)
   )
 
+
 #-----carte G d'une essence--------------------------
 
-df_joined <- df %>%
-  left_join(df_site %>% select(IDP, Lat, Lon), by = "IDP")
-
-essence_choisie <- "AAlb"
-annee_choisie <- 2100
-scenario_choisi <- "BusinessAsUsual_ssp585"
-
-df_filtre <- df_joined %>%
+df_filtre <- df %>%
   filter(
-    speciesName == essence_choisie,
-    Year == annee_choisie,
-    Scenario == scenario_choisi)
+    speciesName == "AAlb",
+    Year == 2100,
+    Scenario == "BusinessAsUsual_ssp585")
+
+df_filtre <- df_filtre %>%
+  left_join(df_site %>% select(IDP, Lat, Lon), by = "IDP")
 
 france <- ne_countries(scale = "medium", returnclass = "sf") %>%
   filter(admin == "France")
@@ -148,8 +122,8 @@ ggplot() +
   theme(
     plot.title = element_text(size = 14, face = "bold"),
     plot.subtitle = element_text(size = 11),
-    legend.position = "right"
-  )
+    legend.position = "right")
+
 
 #----------Carte d'évolution G------------------------------------
 
@@ -201,6 +175,19 @@ df_diff <- df_diff %>%
                       (((basal_2100 / total_basal_2100) * 100)-((basal_2001 / total_basal_2001) * 100)),
                       NA_real_))
 
+df_diff <- df_diff %>%
+  mutate(classe_app = cut(pct_apparition,
+      breaks = c(0, 25, 50, 75, 100),
+      include.lowest = TRUE,
+      labels = c("0–25%", "25–50%", "50–75%", "75–100%")))
+
+df_diff <- df_diff %>%
+  mutate(classe_disp = cut(pct_disparition,
+                          breaks = c(0, 25, 50, 75, 100),
+                          include.lowest = TRUE,
+                          labels = c("0–25%", "25–50%", "50–75%", "75–100%")))
+
+
 france <- ne_countries(scale = "medium", returnclass = "sf") %>%
   filter(admin == "France")
 
@@ -209,12 +196,12 @@ france_metropole <- france %>%
 
 df_carte_diff <- st_as_sf(df_diff, coords = c("Lon", "Lat"), crs = 4326)
 
-essence_cible <- "AAlb"
+essence_cible <- "QRob"
 
 #graph----
 
-ggplot() +
-  geom_sf(data = france_metropole, fill = "grey95", color = "grey70") +
+carte_val_abs <- ggplot() +
+  geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
   geom_sf(
     data = df_carte_diff %>% filter(speciesName == essence_cible, !is.na(diff_valeur_abs)),
     aes(color = diff_valeur_abs),
@@ -223,9 +210,9 @@ ggplot() +
   scale_color_gradient2(
     low = "red",
     mid = "white",
-    high = "green",
+    high = "blue",
     midpoint = 0,
-    name = "Evolution de\nla surface terrière :"
+    name = "Evolution de la\nsurface terrière (m²/Ha) :"
   ) +
   labs(
     title = paste("Evolution de la surface terrière sur la période 2001-2100 pour", essence_cible),
@@ -236,29 +223,33 @@ ggplot() +
     plot.title = element_text(size = 16, face = "bold"),
     plot.subtitle = element_text(size = 12),
     legend.position = "right",
+    legend.background = element_rect(fill = "grey90", color = NA),
+    legend.box.background = element_rect(color = "black"),
     panel.grid = element_blank(),
     axis.title = element_blank(),
     axis.text = element_blank(),
     axis.ticks = element_blank()
   )
 
+ggsave("carte_val_abs.png", plot = carte_val_abs, width = 8, height = 6, dpi = 300)
 
-ggplot() +
-  geom_sf(data = france_metropole, fill = "grey95", color = "grey70") +
+carte_diminution <- ggplot() +
+  geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
   geom_sf(
     data = df_carte_diff %>% filter(speciesName == essence_cible, !is.na(pct_disparition)),
-    aes(color = pct_disparition),
+    aes(color = classe_disp),
     size = 2
   ) +
-  scale_color_gradient2(
-    low = "white",
-    mid = "white",
-    high = "red",
-    midpoint = 0,
-    name = "Pourcentage de\ndisparition (%) :"
+  scale_color_manual(
+    values = c(
+      "0–25%" = "white",
+      "25–50%" = "#ffcccc",
+      "50–75%" = "#ff6666",
+      "75–100%" = "red"),
+    name = "Diminution de la\nsurface terrière (%) :"
   ) +
   labs(
-    title = paste("Diminution de la surface terrière sur la période 2001-2100 pour", essence_cible),
+    title = paste("Proportion de diminution de la surface terrière sur la période 2001-2100 pour", essence_cible),
     subtitle = "Scénario : BusinessAsUsual_ssp585"
   ) +
   theme_minimal() +
@@ -266,28 +257,33 @@ ggplot() +
     plot.title = element_text(size = 16, face = "bold"),
     plot.subtitle = element_text(size = 12),
     legend.position = "right",
+    legend.background = element_rect(fill = "grey90", color = NA),
+    legend.box.background = element_rect(color = "black"),
     panel.grid = element_blank(),
     axis.title = element_blank(),
     axis.text = element_blank(),
     axis.ticks = element_blank()
     )
 
-ggplot() +
-  geom_sf(data = france_metropole, fill = "grey95", color = "grey70") +
+ggsave("carte_diminution.png", plot = carte_diminution, width = 8, height = 6, dpi = 300)
+
+carte_apparition <- ggplot() +
+  geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
   geom_sf(
     data = df_carte_diff %>% filter(speciesName == essence_cible, !is.na(pct_apparition)),
-    aes(color = pct_apparition),
+    aes(color = classe_app),
     size = 2
   ) +
-  scale_color_gradient2(
-    low = "white",
-    mid = "white",
-    high = "green",
-    midpoint = 0,
-    name = "Pourcentage de\ndisparition (%) :"
+  scale_color_manual(
+    values = c(
+      "0–25%" = "white",
+      "25–50%" = "#ccffcc",
+      "50–75%" = "#66cc66",
+      "75–100%" = "green"),
+    name = "Proportion d'apparition (%) :"
   ) +
   labs(
-    title = paste("Diminution de la surface terrière sur la période 2001-2100 pour", essence_cible),
+    title = paste("Proportion d'apparition de", essence_cible,"sur la période 2001-2100"),
     subtitle = "Scénario : BusinessAsUsual_ssp585"
   ) +
   theme_minimal() +
@@ -295,11 +291,102 @@ ggplot() +
     plot.title = element_text(size = 16, face = "bold"),
     plot.subtitle = element_text(size = 12),
     legend.position = "right",
+    legend.background = element_rect(fill = "grey90", color = NA),
+    legend.box.background = element_rect(color = "black"),
     panel.grid = element_blank(),
     axis.title = element_blank(),
     axis.text = element_blank(),
     axis.ticks = element_blank()
   )
 
+ggsave("carte_apparition.png", plot = carte_apparition, width = 8, height = 6, dpi = 300)
 
+#-------Carte présence/absence---------------------
 
+df_abs_pres <- df_diff %>%
+  mutate(abs_pres = ifelse(basal_2100 > 1,"presence","absence"))
+
+df_abs_pres <- df_abs_pres %>% 
+  mutate(
+    risque_pres = case_when(
+      abs_pres == "presence" & pct_disparition > 50 ~ "faible",
+      abs_pres == "presence" & pct_disparition <= 50 ~ "moyen",
+      abs_pres == "presence" & pct_apparition > 0 | abs_pres == "presence" & pct_croi > 0 ~ "fort")
+      )
+
+france <- ne_countries(scale = "medium", returnclass = "sf") %>%
+  filter(admin == "France")
+
+france_metropole <- france %>%
+  st_crop(xmin = -5.5, xmax = 9.8, ymin = 41, ymax = 51.5)
+
+df_carte_abs_pres <- st_as_sf(df_abs_pres, coords = c("Lon", "Lat"), crs = 4326)
+
+essence_cible <- "QRob"
+
+#graph presence/absence
+carte_abs_pres <- ggplot() +
+  geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
+  geom_sf(
+    data = df_carte_abs_pres %>% filter(speciesName == essence_cible),
+    aes(color = abs_pres),
+    size = 2
+  ) +
+  scale_color_manual(
+    values = c(
+      "presence" = "green",
+      "absence" = "red"),
+    name = "Légende :"
+  ) +
+  labs(
+    title = paste("Carte de la présence/absence de", essence_cible,"sur la période 2001-2100"),
+    subtitle = "Scénario : BusinessAsUsual_ssp585"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    legend.position = "right",
+    legend.background = element_rect(fill = "grey90", color = NA),
+    legend.box.background = element_rect(color = "black"),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+
+ggsave("carte_abs_pres.png", plot = carte_abs_pres, width = 8, height = 6, dpi = 300)
+
+#graph gradient presence
+carte_gradient <- ggplot() +
+  geom_sf(data = france_metropole, fill = "grey95", color = "grey20") +
+  geom_sf(
+    data = df_carte_abs_pres %>% filter(speciesName == essence_cible, !is.na(risque_pres)),
+    aes(color = risque_pres),
+    size = 2
+  ) +
+  scale_color_manual(
+    values = c(
+      "faible" = "red",
+      "moyen" = "orange",
+      "fort" = "green"),
+    name = "Probabilité de présence :"
+  ) +
+  labs(
+    title = paste("Carte de la probabilité de présence de", essence_cible,"sur la période 2001-2100"),
+    subtitle = "Scénario : BusinessAsUsual_ssp585"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    legend.position = "right",
+    legend.background = element_rect(fill = "grey90", color = NA),
+    legend.box.background = element_rect(color = "black"),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+
+ggsave("carte_gradient.png", plot = carte_gradient, width = 8, height = 6, dpi = 300)
