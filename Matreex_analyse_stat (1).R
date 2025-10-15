@@ -9,6 +9,7 @@ fonction_packages <- function(packages) {
   message("✅ Tous les packages sont maintenant installés et chargés.")
 }
 
+
 #-------Création de la nouvelle table avec les indicateurs----------
 fonction_table_indicateur <- function(annee_initial,annee_final){
   
